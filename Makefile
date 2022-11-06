@@ -1,6 +1,6 @@
 all: build run clean
 build:
-	gcc main.c -lpthread -lm -o exe
+	gcc main.c -lpthread -o exe
 run:
 	./exe
 testRun:

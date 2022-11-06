@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
-#include <math.h>
 
 // Data for array sectioning array
 typedef struct ArraySectionData{
