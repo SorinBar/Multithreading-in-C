@@ -13,7 +13,7 @@ typedef struct ArraySectionData{
 }ArraySectionData;
 
 // Read the array lenght from user and returns it
-int ReadArrLen();
+void ReadData(int *len, int *threadsNr);
 // Generate random dynamic array of lenght len and returns it
 int *GenRandArr(int len);
 // Fill ArraySectionData structure
@@ -23,7 +23,7 @@ int StupidReturn(int x);
 // Calculate the sum of the array section
 void *SectionSum(void *data);
 // Thread Test Core 
-void ThreadTest(int *arr, int len);
+void ThreadTest(int *arr, int len, int threadsNr);
 // No Thread Test Core 
 void NoThreadTest(int *arr, int len);
 
@@ -33,29 +33,34 @@ int main()
     time_t noThreadTime;
     int *arr;
     int len;
-    len = ReadArrLen();
+    int threadsNr;
+    ReadData(&len, &threadsNr);
     arr = GenRandArr(len);
 
     // Thread Test
+    printf("==================\n");
     threadTime = time(NULL);
-    ThreadTest(arr, len);   
+    ThreadTest(arr, len, threadsNr);   
     threadTime = time(NULL) - threadTime;
-    printf("EXECUTION TIME: %lds\n", threadTime);
+    printf("-> %d THREADS EXECUTION TIME: %lds\n", threadsNr, threadTime);
+    printf("==================\n");
     // No Thread Test
     noThreadTime = time(NULL);
     NoThreadTest(arr, len);   
     noThreadTime = time(NULL) - noThreadTime;
-    printf("EXECUTION TIME: %lds\n", noThreadTime);
-    
+    printf("-> 1 THREAD EXECUTION TIME: %lds\n", noThreadTime);
+    printf("==================\n");
+
     free(arr);
     exit(0);
 }
 
-int ReadArrLen(){
-    int len;
+void ReadData(int *len, int *threadsNr){
     printf("Enter array lenght: ");
-    scanf("%d", &len);
-    return len;
+    scanf("%d", len);
+    printf("Enter number of threads: ");
+    scanf("%d", threadsNr);
+
 }
 
 int *GenRandArr(int len){
@@ -90,29 +95,35 @@ void *SectionSum(void *data)
     return NULL;
 }
 
-void ThreadTest(int *arr, int len){
+void ThreadTest(int *arr, int len, int threadsNr){
     
-    pthread_t thread_1;
-    pthread_t thread_2;
+    pthread_t *threads;
+    ArraySectionData *section;
+    long sum = 0;
+    int part = len / threadsNr;
 
-    ArraySectionData section1;
-    ArraySectionData section2;
-
-    FillArraySectionData(&section1, arr, 0, len / 2);
-    FillArraySectionData(&section2, arr, len / 2 + 1, len - 1);
-
-    pthread_create(&thread_1, NULL, SectionSum, &section1);
-    pthread_create(&thread_2, NULL, SectionSum, &section2);
-    pthread_join(thread_1, NULL);
-    pthread_join(thread_2, NULL);
+    threads = (pthread_t*)(malloc(sizeof(pthread_t) * threadsNr));
+    section = (ArraySectionData*)(malloc(sizeof(ArraySectionData) * threadsNr));
     
-    long sum = section1.resultSum + section2.resultSum;
+    for(int i = 0; i < threadsNr - 1; i++)
+        FillArraySectionData(&(section[i]), arr, i * part, (i + 1) * part - 1);
+    FillArraySectionData(&(section[threadsNr - 1]), arr, (threadsNr - 1) * part, len - 1);
+
+    for(int i = 0; i < threadsNr; i++)
+        pthread_create(&(threads[i]), NULL, SectionSum, &(section[i]));
+    for(int i = 0; i < threadsNr; i++)
+        pthread_join(threads[i], NULL);
+    for(int i = 0; i < threadsNr; i++)
+        sum += section[i].resultSum;            
+
     printf("Sum = %ld\n", sum);
+    free(section);
+    free(threads);
 }
 
 void NoThreadTest(int *arr, int len){
-    long sum = 0;
-    for(int i = 0; i < len; i++)
-        sum += StupidReturn(arr[i]);
-    printf("Sum = %ld\n", sum);
+    ArraySectionData section;
+    FillArraySectionData(&section, arr, 0, len - 1);
+    SectionSum(&section);
+    printf("Sum = %ld\n", section.resultSum);
 }
